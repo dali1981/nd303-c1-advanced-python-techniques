@@ -12,6 +12,8 @@ data on NEOs and close approaches extracted by `extract.load_neos` and
 You'll edit this file in Tasks 2 and 3.
 """
 
+from models import NearEarthObject, CloseApproach
+
 class NEODatabase:
     """A database of near-Earth objects and their close approaches.
 
@@ -44,8 +46,13 @@ class NEODatabase:
         # TODO: What additional auxiliary data structures will be useful?
 
         # TODO: Link together the NEOs and their close approaches.
+        for approach in self._approaches:
+            approach: CloseApproach
+            neo = self.get_neo_by_designation(approach.designation)
+            approach.neo = neo
+            neo.approaches.append(approach)
 
-    def get_neo_by_designation(self, designation):
+    def get_neo_by_designation(self, designation) -> NearEarthObject:
         """Find and return an NEO by its primary designation.
 
         If no match is found, return `None` instead.
@@ -59,6 +66,11 @@ class NEODatabase:
         :return: The `NearEarthObject` with the desired primary designation, or `None`.
         """
         # TODO: Fetch an NEO by its primary designation.
+        for neo in self._neos:
+            neo: NearEarthObject
+            if neo.designation == designation:
+                return neo
+
         return None
 
     def get_neo_by_name(self, name):
@@ -76,6 +88,11 @@ class NEODatabase:
         :return: The `NearEarthObject` with the desired name, or `None`.
         """
         # TODO: Fetch an NEO by its name.
+        for neo in self._neos:
+            neo: NearEarthObject
+            if neo.name == name:
+                return neo
+
         return None
 
     def query(self, filters=()):
@@ -93,5 +110,12 @@ class NEODatabase:
         :return: A stream of matching `CloseApproach` objects.
         """
         # TODO: Generate `CloseApproach` objects that match all of the filters.
+        def apply_filters():
+            for one_filter in filters:
+                if not one_filter(approach):
+                    return False
+            return True
+
         for approach in self._approaches:
-            yield approach
+            if apply_filters():
+                yield approach

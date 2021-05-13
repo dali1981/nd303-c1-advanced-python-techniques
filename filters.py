@@ -18,6 +18,8 @@ You'll edit this file in Tasks 3a and 3c.
 """
 import operator
 
+from models import CloseApproach, NearEarthObject
+
 
 class UnsupportedCriterionError(NotImplementedError):
     """A filter criterion is unsupported."""
@@ -38,6 +40,7 @@ class AttributeFilter:
     Concrete subclasses can override the `get` classmethod to provide custom
     behavior to fetch a desired attribute from the given `CloseApproach`.
     """
+
     def __init__(self, op, value):
         """Construct a new `AttributeFilter` from an binary predicate and a reference value.
 
@@ -70,6 +73,51 @@ class AttributeFilter:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(op=operator.{self.op.__name__}, value={self.value})"
+
+
+class DateFilter(AttributeFilter):
+    @classmethod
+    def get(cls, approach: CloseApproach):
+        return approach.time.date()
+
+
+class DistanceFilter(AttributeFilter):
+    @classmethod
+    def get(cls, approach: CloseApproach):
+        return approach.distance
+
+
+class VelocityFilter(AttributeFilter):
+    @classmethod
+    def get(cls, approach: CloseApproach):
+        return approach.velocity
+
+
+class DiameterFilter(AttributeFilter):
+    @classmethod
+    def get(cls, approach: CloseApproach):
+        return approach.neo.diameter
+
+
+class HazardousFilter(AttributeFilter):
+    @classmethod
+    def get(cls, approach: CloseApproach):
+        return approach.neo.hazardous
+
+
+filters = {
+    'date': lambda value: DateFilter(operator.eq, value),
+    'start_date': lambda value: DateFilter(operator.ge, value),
+    'end_date': lambda value: DateFilter(operator.le, value),
+    'distance_min': lambda value: DistanceFilter(operator.ge, value),
+    'distance_max': lambda value: DistanceFilter(operator.le, value),
+    'velocity_min': lambda value: VelocityFilter(operator.ge, value),
+    'velocity_max': lambda value: VelocityFilter(operator.le, value),
+    'diameter_min': lambda value: DiameterFilter(operator.ge, value),
+    'diameter_max': lambda value: DiameterFilter(operator.le, value),
+    'hazardous': lambda value: HazardousFilter(operator.eq, value),
+
+}
 
 
 def create_filters(date=None, start_date=None, end_date=None,
@@ -107,7 +155,18 @@ def create_filters(date=None, start_date=None, end_date=None,
     :return: A collection of filters for use with `query`.
     """
     # TODO: Decide how you will represent your filters.
-    return ()
+    args = {'date': date,
+            'start_date': start_date,
+            'end_date': end_date,
+            'distance_min': distance_min,
+            'distance_max': distance_max,
+            'velocity_min': velocity_min,
+            'velocity_max': velocity_max,
+            'diameter_min': diameter_min,
+            'diameter_max': diameter_max,
+            'hazardous': hazardous}
+
+    return [filters[key](value) for key, value in args.items()if args[key] is not None]
 
 
 def limit(iterator, n=None):
@@ -119,5 +178,8 @@ def limit(iterator, n=None):
     :param n: The maximum number of values to produce.
     :yield: The first (at most) `n` values from the iterator.
     """
-    # TODO: Produce at most `n` values from the given iterator.
-    return iterator
+    if n in (None, 0):
+        return iterator
+
+    else:
+        return (value for count, value in enumerate(iterator) if count < n)
